@@ -3,25 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="3D Forest Runner - Collect coins of different types while avoiding trees in this exciting 3D game!">
-    <meta name="keywords" content="3D game, forest runner, coin collection, three.js, browser game">
-    <meta name="author" content="Forest Runner Developer">
-    
-    <!-- Social Media Meta Tags -->
-    <meta property="og:title" content="3D Forest Runner">
-    <meta property="og:description" content="Collect coins of different types while avoiding trees in this exciting 3D game!">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="https://via.placeholder.com/1200x630">
-    <meta property="og:url" content="https://your-website.com/forest-runner">
-    
-    <title>3D Forest Runner - Collect Coins & Avoid Trees!</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>">
+    <title>3D Forest Runner</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
             font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
         }
         canvas {
             display: block;
@@ -75,84 +62,9 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        #loading {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #1a1a1a;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 24px;
-            z-index: 300;
-        }
-        #loadingBar {
-            width: 300px;
-            height: 20px;
-            background: #333;
-            border-radius: 10px;
-            margin-top: 20px;
-            overflow: hidden;
-        }
-        #loadingProgress {
-            width: 0%;
-            height: 100%;
-            background: #4CAF50;
-            transition: width 0.3s;
-        }
-        #shareButtons {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            z-index: 100;
-        }
-        #shareButtons button {
-            background: #4267B2;
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-            margin: 5px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        #shareButtons button.twitter {
-            background: #1DA1F2;
-        }
-        #fullscreenButton {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 5px;
-            z-index: 100;
-        }
     </style>
 </head>
 <body>
-    <div id="loading">
-        <h1>3D Forest Runner</h1>
-        <p>Loading game assets...</p>
-        <div id="loadingBar">
-            <div id="loadingProgress"></div>
-        </div>
-    </div>
-
     <div id="info">
         <h2>Forest Runner</h2>
         <p><strong>Controls:</strong></p>
@@ -172,32 +84,10 @@
         <h2>Game Over!</h2>
         <p>Your final score: <span id="finalScore">0</span></p>
         <button id="restartButton">Play Again</button>
-        <p>Share your score:</p>
-        <button id="shareScoreButton">Share Score</button>
-    </div>
-    
-    <button id="fullscreenButton">Fullscreen</button>
-    
-    <div id="shareButtons">
-        <button onclick="shareGame('facebook')">Share on Facebook</button>
-        <button class="twitter" onclick="shareGame('twitter')">Share on Twitter</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // Loading simulation
-        let loadingProgress = 0;
-        const loadingInterval = setInterval(() => {
-            loadingProgress += 5;
-            document.getElementById('loadingProgress').style.width = loadingProgress + '%';
-            if (loadingProgress >= 100) {
-                clearInterval(loadingInterval);
-                setTimeout(() => {
-                    document.getElementById('loading').style.display = 'none';
-                }, 500);
-            }
-        }, 100);
-        
         // Game variables
         let scene, camera, renderer, character;
         let terrain = [];
@@ -296,12 +186,6 @@
             
             // Add restart button functionality
             document.getElementById('restartButton').addEventListener('click', restartGame);
-            
-            // Add fullscreen button functionality
-            document.getElementById('fullscreenButton').addEventListener('click', toggleFullscreen);
-            
-            // Add share score button functionality
-            document.getElementById('shareScoreButton').addEventListener('click', () => shareScore(score));
             
             // Start animation loop
             animate();
@@ -863,14 +747,8 @@
                 <p>Congratulations! You've collected all required coins!</p>
                 <p>Your final score: <span id="finalScore">${score}</span></p>
                 <button id="restartButton">Play Again</button>
-                <p>Share your victory:</p>
-                <button id="shareScoreButton">Share Victory</button>
             `;
             document.getElementById('gameOver').style.display = 'block';
-            
-            // Re-add event listeners for the new buttons
-            document.getElementById('restartButton').addEventListener('click', restartGame);
-            document.getElementById('shareScoreButton').addEventListener('click', () => shareScore(score, true));
         }
         
         function showFloatingText(text, position) {

@@ -1,45 +1,43 @@
-# 3D Forest Runner
+# Forest Runner
 
-A fun 3D browser game where you navigate through a forest, collecting different types of coins while avoiding trees.
-
-## Play the Game
-
-You can play the game directly at: [https://supriyosen.github.io/forestrunner/](https://supriyosen.github.io/forestrunner/)
+A 3D web-based game where you navigate through a magical forest collecting different types of coins while avoiding trees.
 
 ## Game Features
 
-- **Beautiful 3D Forest Environment**: Navigate through a procedurally generated forest with hills and terrain.
-- **Multiple Coin Types**: Collect Bronze, Silver, Gold, Emerald, and special Diamond coins.
-- **Collection Goal**: Collect 10 of each regular coin type and 1 Diamond coin to win.
-- **Dynamic Environment**: The environment regenerates as you explore, creating an endless forest.
-- **Increasing Challenge**: Game difficulty increases as you progress.
-
-## Controls
-
-- **A / ←**: Rotate left
-- **D / →**: Rotate right
-- **W / ↑**: Increase speed
-- **S / ↓**: Decrease speed
-- **Space**: Jump
-- **Fullscreen Button**: Toggle fullscreen mode
+- **Multiple Coin Types**: Collect Bronze, Silver, Gold, Emerald, and special Diamond coins
+- **Dynamic Environment**: Trees and terrain that respond to your movement
+- **Progressive Difficulty**: Speed increases as you level up
+- **Score System**: Points based on coin collection speed and type
+- **Visual Feedback**: Coin collection animations and timer rings
+- **Responsive Controls**: Smooth character movement and camera following
 
 ## How to Play
 
-1. Navigate through the forest using the controls.
-2. Collect coins before their timer runs out.
-3. Avoid hitting trees or going out of bounds.
-4. Collect the required number of each coin type to win.
+- **Movement Controls**:
+  - W / ↑ : Increase speed
+  - S / ↓ : Decrease speed
+  - A / ← : Rotate left
+  - D / → : Rotate right
+  - Space : Jump
+
+## Objectives
+
+- Collect 10 of each regular coin type (Bronze, Silver, Gold, Emerald)
+- Find and collect the special Diamond coin
+- Avoid colliding with trees
+- Stay within the terrain boundaries
+
+## Win Condition
+
+Collect all required coins:
+- 10 Bronze coins
+- 10 Silver coins
+- 10 Gold coins
+- 10 Emerald coins
+- 1 Diamond coin
 
 ## Technologies Used
 
 - Three.js for 3D rendering
-- HTML5 and JavaScript
-- CSS for UI styling
-
-## Development
-
-This game was developed as a learning project for 3D web game development using Three.js.
-
-## License
-
-MIT License 
+- HTML5 Canvas for UI elements
+- JavaScript for game logic 
