@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="3D Forest Runner - Collect coins of different types while avoiding trees in this exciting 3D game!">
+    <meta name="keywords" content="3D game, forest runner, coin collection, three.js, browser game">
+    <meta name="author" content="Forest Runner Developer">
+    
+    <!-- Social Media Meta Tags -->
+    <meta property="og:title" content="3D Forest Runner">
+    <meta property="og:description" content="Collect coins of different types while avoiding trees in this exciting 3D game!">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://via.placeholder.com/1200x630">
+    <meta property="og:url" content="https://your-website.com/forest-runner">
+    
+    <title>3D Forest Runner - Collect Coins & Avoid Trees!</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+        }
+        canvas {
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            max-width: 300px;
+            z-index: 100;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 18px;
+            z-index: 100;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            z-index: 200;
+        }
+        #gameOver button {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            z-index: 300;
+        }
+        #loadingBar {
+            width: 300px;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        #loadingProgress {
+            width: 0%;
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.3s;
+        }
+        #shareButtons {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+        #shareButtons button {
+            background: #4267B2;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #shareButtons button.twitter {
+            background: #1DA1F2;
+        }
+        #fullscreenButton {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <h1>3D Forest Runner</h1>
+        <p>Loading game assets...</p>
+        <div id="loadingBar">
+            <div id="loadingProgress"></div>
+        </div>
+    </div>
+
+    <div id="info">
+        <h2>Forest Runner</h2>
+        <p><strong>Controls:</strong></p>
+        <p>A / ← : Rotate left</p>
+        <p>D / → : Rotate right</p>
+        <p>W / ↑ : Increase speed</p>
+        <p>S / ↓ : Decrease speed</p>
+        <p>Space : Jump</p>
+        <p>Collect coins before their timer runs out!</p>
+        <p>Faster collection = more points!</p>
+        <p>Avoid trees!</p>
+        <p>Stay within the terrain boundaries!</p>
+        <p>Collect coins to level up!</p>
+    </div>
+    <div id="score">Level: 1 | Score: 0 | Coins: 0/10</div>
+    <div id="gameOver">
+        <h2>Game Over!</h2>
+        <p>Your final score: <span id="finalScore">0</span></p>
+        <button id="restartButton">Play Again</button>
+        <p>Share your score:</p>
+        <button id="shareScoreButton">Share Score</button>
+    </div>
+    
+    <button id="fullscreenButton">Fullscreen</button>
+    
+    <div id="shareButtons">
+        <button onclick="shareGame('facebook')">Share on Facebook</button>
+        <button class="twitter" onclick="shareGame('twitter')">Share on Twitter</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Loading simulation
+        let loadingProgress = 0;
+        const loadingInterval = setInterval(() => {
+            loadingProgress += 5;
+            document.getElementById('loadingProgress').style.width = loadingProgress + '%';
+            if (loadingProgress >= 100) {
+                clearInterval(loadingInterval);
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }, 500);
+            }
+        }, 100);
+        
+        // Game variables
+        let scene, camera, renderer, character;
+        let terrain = [];
+        let trees = [];
+        let animals = [];
+        let coins = [];
+        let score = 0;
+        let speed = 0.2;
+        let isGameOver = false;
+        let characterPosition = { x: 0, y: 1.5, z: 0 }; // Raised character height
+        let characterRotation = 0; // Character rotation angle
+        let jumping = false;
+        let jumpHeight = 0;
+        let terrainSize = 1000;
+        let visibleDistance = 300;
+        let clock = new THREE.Clock();
+        const coinHeight = 1.5; // Fixed coin height
+        let coinTimers = []; // Array to store coin timers
+        let coinTimerMeshes = []; // Array to store coin timer visual elements
+        let coinActivationDistance = 50; // Distance at which coins activate
+        let coinTimeLimit = 10; // Time limit in seconds for coins
+        let gameLevel = 1; // Current game level
+        let levelText; // Text mesh for displaying level
+        
+        // Coin collection tracking
+        const COIN_TYPES = {
+            BRONZE: 0,
+            SILVER: 1,
+            GOLD: 2,
+            EMERALD: 3,
+            DIAMOND: 4
+        };
+        
+        let coinCollection = {
+            [COIN_TYPES.BRONZE]: { collected: 0, required: 10, color: 0xCD7F32 },  // Bronze
+            [COIN_TYPES.SILVER]: { collected: 0, required: 10, color: 0xC0C0C0 },  // Silver
+            [COIN_TYPES.GOLD]: { collected: 0, required: 10, color: 0xFFD700 },    // Gold
+            [COIN_TYPES.EMERALD]: { collected: 0, required: 10, color: 0x50C878 }, // Emerald
+            [COIN_TYPES.DIAMOND]: { collected: 0, required: 1, color: 0xB9F2FF }   // Diamond
+        };
+        
+        let diamondCoinPlaced = false;
+        let lastRegeneratePosition = { x: 0, z: 0 };
+        let regenerationCooldown = 0;
+        
+        // Initialize the game
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Sky blue
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.005); // Add fog for depth
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, visibleDistance);
+            camera.position.set(0, 5, 10);
+            camera.lookAt(0, 0, 0); // Look at the origin initially
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 100, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -100;
+            directionalLight.shadow.camera.right = 100;
+            directionalLight.shadow.camera.top = 100;
+            directionalLight.shadow.camera.bottom = -100;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create terrain
+            createTerrain();
+            
+            // Create character
+            createCharacter();
+            
+            // Create level indicator
+            createLevelIndicator();
+            
+            // Generate initial environment
+            generateEnvironment();
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Add keyboard controls
+            document.addEventListener('keydown', onKeyDown);
+            
+            // Add restart button functionality
+            document.getElementById('restartButton').addEventListener('click', restartGame);
+            
+            // Add fullscreen button functionality
+            document.getElementById('fullscreenButton').addEventListener('click', toggleFullscreen);
+            
+            // Add share score button functionality
+            document.getElementById('shareScoreButton').addEventListener('click', () => shareScore(score));
+            
+            // Start animation loop
+            animate();
+        }
+        
+        function createTerrain() {
+            // Create a large ground plane with hills
+            const geometry = new THREE.PlaneGeometry(terrainSize, terrainSize, 100, 100);
+            geometry.rotateX(-Math.PI / 2); // Rotate to be horizontal
+            
+            // Create hills by modifying vertex heights
+            const vertices = geometry.attributes.position.array;
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const z = vertices[i + 2];
+                
+                // Create mountain-like terrain
+                vertices[i + 1] = Math.sin(x * 0.01) * 10 + Math.sin(z * 0.01) * 10;
+                
+                // Add some smaller details
+                vertices[i + 1] += Math.sin(x * 0.1) * Math.sin(z * 0.1) * 2;
+            }
+            
+            geometry.computeVertexNormals();
+            
+            // Create material with grass texture
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x4CAF50,
+                flatShading: true,
+                side: THREE.DoubleSide
+            });
+            
+            const ground = new THREE.Mesh(geometry, material);
+            ground.receiveShadow = true;
+            scene.add(ground);
+            terrain.push(ground);
+        }
+        
+        function createCharacter() {
+            // Simple character representation with direction indicator
+            const geometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+            const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            character = new THREE.Mesh(geometry, material);
+            character.position.set(characterPosition.x, characterPosition.y, characterPosition.z);
+            character.castShadow = true;
+            character.receiveShadow = true;
+            
+            // Add a direction indicator (nose)
+            const noseGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.3);
+            const noseMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+            const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+            nose.position.set(0, 0, 0.4); // Position in front of character (POSITIVE Z is forward)
+            character.add(nose);
+            
+            scene.add(character);
+        }
+        
+        function createLevelIndicator() {
+            // Create a text geometry for the level indicator
+            const loader = new THREE.FontLoader();
+            
+            // Since we can't load external fonts easily, we'll create a simple level indicator with a box
+            const levelIndicator = new THREE.Group();
+            const boxGeometry = new THREE.BoxGeometry(2, 1, 0.1);
+            const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const box = new THREE.Mesh(boxGeometry, boxMaterial);
+            levelIndicator.add(box);
+            
+            // Add the level indicator to the scene
+            levelText = levelIndicator;
+            scene.add(levelText);
+        }
+        
+        function updateLevelIndicator() {
+            // Update the level indicator position to follow the camera
+            if (levelText) {
+                levelText.position.set(
+                    camera.position.x - 5,
+                    camera.position.y + 3,
+                    camera.position.z
+                );
+                levelText.rotation.y = characterRotation;
+                
+                // Update the document's score display to include coin collection progress with visual indicators
+                let scoreText = `<span style="font-weight: bold;">Score: ${score}</span> | `;
+                
+                // Bronze coin with visual indicator
+                scoreText += `<span style="display: inline-flex; align-items: center;">
+                                <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; 
+                                background-color: #CD7F32; margin-right: 5px;"></span>
+                                Bronze: ${coinCollection[COIN_TYPES.BRONZE].collected}/${coinCollection[COIN_TYPES.BRONZE].required}
+                              </span> | `;
+                
+                // Silver coin with visual indicator
+                scoreText += `<span style="display: inline-flex; align-items: center;">
+                                <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; 
+                                background-color: #C0C0C0; margin-right: 5px;"></span>
+                                Silver: ${coinCollection[COIN_TYPES.SILVER].collected}/${coinCollection[COIN_TYPES.SILVER].required}
+                              </span> | `;
+                
+                // Gold coin with visual indicator
+                scoreText += `<span style="display: inline-flex; align-items: center;">
+                                <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; 
+                                background-color: #FFD700; margin-right: 5px;"></span>
+                                Gold: ${coinCollection[COIN_TYPES.GOLD].collected}/${coinCollection[COIN_TYPES.GOLD].required}
+                              </span> | `;
+                
+                // Emerald coin with visual indicator
+                scoreText += `<span style="display: inline-flex; align-items: center;">
+                                <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; 
+                                background-color: #50C878; margin-right: 5px;"></span>
+                                Emerald: ${coinCollection[COIN_TYPES.EMERALD].collected}/${coinCollection[COIN_TYPES.EMERALD].required}
+                              </span> | `;
+                
+                // Diamond coin with visual indicator (with glow effect)
+                scoreText += `<span style="display: inline-flex; align-items: center;">
+                                <span style="display: inline-block; width: 15px; height: 15px; border-radius: 50%; 
+                                background-color: #B9F2FF; box-shadow: 0 0 5px #B9F2FF; margin-right: 5px;"></span>
+                                Diamond: ${coinCollection[COIN_TYPES.DIAMOND].collected}/${coinCollection[COIN_TYPES.DIAMOND].required}
+                              </span>`;
+                
+                document.getElementById('score').innerHTML = scoreText;
+            }
+        }
+        
+        function generateEnvironment() {
+            // Generate trees evenly distributed
+            distributeObjectsEvenly(800, createTree);
+            
+            // Generate animals evenly distributed
+            distributeObjectsEvenly(20, createAnimal);
+            
+            // Generate coins evenly distributed
+            distributeCoins();
+        }
+        
+        function distributeCoins() {
+            // Generate regular coins of each type
+            for (let coinType = COIN_TYPES.BRONZE; coinType <= COIN_TYPES.EMERALD; coinType++) {
+                distributeObjectsEvenly(50, (x, z) => createCoin(x, z, coinType));
+            }
+            
+            // Generate a single diamond coin if not already placed
+            if (!diamondCoinPlaced) {
+                // Place diamond coin in a random location
+                const x = (Math.random() - 0.5) * terrainSize * 0.8;
+                const z = (Math.random() - 0.5) * terrainSize * 0.8;
+                createCoin(x, z, COIN_TYPES.DIAMOND);
+                diamondCoinPlaced = true;
+            }
+        }
+        
+        // Helper function to distribute objects evenly across the terrain
+        function distributeObjectsEvenly(count, createFunction) {
+            // Divide the terrain into sectors
+            const sectorSize = terrainSize / Math.sqrt(count);
+            const sectorsPerSide = Math.ceil(terrainSize / sectorSize);
+            
+            for (let i = 0; i < count; i++) {
+                // Calculate sector position
+                const sectorX = i % sectorsPerSide;
+                const sectorZ = Math.floor(i / sectorsPerSide);
+                
+                // Calculate base position within the terrain
+                const baseX = (sectorX * sectorSize) - (terrainSize / 2) + (sectorSize / 2);
+                const baseZ = (sectorZ * sectorSize) - (terrainSize / 2) + (sectorSize / 2);
+                
+                // Add some randomness within the sector
+                const randomOffsetX = (Math.random() - 0.5) * sectorSize * 0.8;
+                const randomOffsetZ = (Math.random() - 0.5) * sectorSize * 0.8;
+                
+                // Final position
+                const x = baseX + randomOffsetX;
+                const z = baseZ + randomOffsetZ;
+                
+                // Only create if within terrain bounds
+                if (x >= -terrainSize/2 && x <= terrainSize/2 && 
+                    z >= -terrainSize/2 && z <= terrainSize/2) {
+                    createFunction(x, z);
+                }
+            }
+        }
+        
+        // Helper function to get terrain height at a specific position
+        function getTerrainHeight(x, z) {
+            return Math.sin(x * 0.01) * 10 + Math.sin(z * 0.01) * 10 + Math.sin(x * 0.1) * Math.sin(z * 0.1) * 2;
+        }
+        
+        function createTree(x, z) {
+            // Get height at this position
+            const y = getTerrainHeight(x, z);
+            
+            // Tree trunk
+            const trunkHeight = 1 + Math.random() * 3;
+            const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.3, trunkHeight, 8);
+            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.set(x, y + trunkHeight / 2, z);
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            scene.add(trunk);
+            
+            // Tree leaves
+            const leavesSize = 1 + Math.random() * 2;
+            const leavesGeometry = new THREE.ConeGeometry(leavesSize, leavesSize * 2, 8);
+            const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+            const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+            leaves.position.set(x, y + trunkHeight + leavesSize, z);
+            leaves.castShadow = true;
+            leaves.receiveShadow = true;
+            scene.add(leaves);
+            
+            trees.push({ trunk, leaves, position: { x, y, z }, height: trunkHeight + leavesSize * 2 });
+        }
+        
+        function createAnimal(x, z) {
+            // Get height at this position
+            const y = getTerrainHeight(x, z);
+            
+            // Simple animal representation
+            const bodyGeometry = new THREE.BoxGeometry(0.8, 0.5, 1.2);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.set(x, y + 0.5, z);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            
+            // Head
+            const headGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const headMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.set(0, 0.3, 0.6);
+            body.add(head);
+            
+            scene.add(body);
+            
+            animals.push({
+                body,
+                position: { x, y, z },
+                direction: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.03
+            });
+        }
+        
+        function createCoin(x, z, coinType = COIN_TYPES.GOLD) {
+            // Get height at this position
+            const terrainY = getTerrainHeight(x, z);
+            
+            // Create coin at fixed height above terrain
+            const y = terrainY + coinHeight;
+            
+            // Determine coin size based on type
+            let coinSize = 1.0;
+            let coinThickness = 0.2;
+            
+            // Diamond coin is larger and uses a different geometry
+            if (coinType === COIN_TYPES.DIAMOND) {
+                coinSize = 1.5;
+                coinThickness = 0.5;
+            }
+            
+            // Create coin geometry based on type
+            let geometry;
+            if (coinType === COIN_TYPES.DIAMOND) {
+                // Use octahedron for diamond
+                geometry = new THREE.OctahedronGeometry(coinSize, 0);
+            } else {
+                // Use cylinder for regular coins
+                geometry = new THREE.CylinderGeometry(coinSize, coinSize, coinThickness, 16);
+                geometry.rotateX(Math.PI / 2); // Make it face forward
+            }
+            
+            // Get color based on coin type
+            const coinColor = coinCollection[coinType].color;
+            
+            // Create material with appropriate color and shininess
+            const material = new THREE.MeshStandardMaterial({ 
+                color: coinColor,
+                metalness: coinType === COIN_TYPES.DIAMOND ? 0.9 : 0.5,
+                roughness: coinType === COIN_TYPES.DIAMOND ? 0.1 : 0.5
+            });
+            
+            const coin = new THREE.Mesh(geometry, material);
+            coin.position.set(x, y, z);
+            coin.castShadow = true;
+            coin.receiveShadow = true;
+            
+            // Add special effects for diamond coin
+            if (coinType === COIN_TYPES.DIAMOND) {
+                // Add a point light to make the diamond glow
+                const light = new THREE.PointLight(0xB9F2FF, 1, 10);
+                light.position.set(0, 0, 0);
+                coin.add(light);
+            }
+            
+            scene.add(coin);
+            
+            // Create timer ring around coin
+            const ringSize = coinType === COIN_TYPES.DIAMOND ? 2.0 : 1.3;
+            const ringThickness = coinType === COIN_TYPES.DIAMOND ? 0.4 : 0.3;
+            
+            const ringGeometry = new THREE.RingGeometry(ringSize, ringSize + ringThickness, 32);
+            ringGeometry.rotateX(Math.PI / 2);
+            const ringMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00, 
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.7
+            });
+            const timerRing = new THREE.Mesh(ringGeometry, ringMaterial);
+            timerRing.position.set(x, y, z);
+            timerRing.scale.set(1, 1, 1); // Full ring
+            timerRing.visible = false; // Hide initially
+            scene.add(timerRing);
+            
+            // Add coin to array
+            const coinIndex = coins.length;
+            coins.push({
+                mesh: coin,
+                position: { x, y, z },
+                collected: false,
+                active: false,
+                timerStarted: false,
+                timeRemaining: coinTimeLimit,
+                value: 10 * gameLevel, // Coin value increases with level
+                type: coinType
+            });
+            
+            // Add timer to array
+            coinTimers.push(coinTimeLimit);
+            coinTimerMeshes.push(timerRing);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function onKeyDown(event) {
+            if (isGameOver) return;
+            
+            switch (event.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    // Rotate character left
+                    characterRotation += 0.1;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    // Rotate character right
+                    characterRotation -= 0.1;
+                    break;
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    speed += 0.05;
+                    if (speed > 0.8) speed = 0.8;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    speed -= 0.05;
+                    if (speed < 0.1) speed = 0.1;
+                    break;
+                case ' ':
+                    if (!jumping) {
+                        jumping = true;
+                    }
+                    break;
+            }
+        }
+        
+        function updateCharacter() {
+            // Update character rotation
+            character.rotation.y = characterRotation;
+            
+            // Calculate movement direction based on character rotation
+            // In Three.js, the character's local forward is positive Z
+            const moveX = Math.sin(characterRotation) * speed;
+            const moveZ = Math.cos(characterRotation) * speed;
+            
+            // Update character position
+            characterPosition.x += moveX;
+            characterPosition.z += moveZ; // Move in the direction the character is facing
+            
+            // Enforce terrain boundaries
+            const boundaryLimit = terrainSize / 2 - 5; // 5 units buffer from edge
+            if (characterPosition.x > boundaryLimit) characterPosition.x = boundaryLimit;
+            if (characterPosition.x < -boundaryLimit) characterPosition.x = -boundaryLimit;
+            if (characterPosition.z > boundaryLimit) characterPosition.z = boundaryLimit;
+            if (characterPosition.z < -boundaryLimit) characterPosition.z = -boundaryLimit;
+            
+            // Get terrain height at character position
+            const terrainY = getTerrainHeight(characterPosition.x, characterPosition.z);
+            
+            // Handle jumping
+            if (jumping) {
+                jumpHeight += 0.2;
+                if (jumpHeight > 3) {
+                    jumping = false;
+                }
+            } else if (jumpHeight > 0) {
+                jumpHeight -= 0.2;
+                if (jumpHeight < 0) jumpHeight = 0;
+            }
+            
+            // Set character height to be at coin level plus jump height
+            character.position.y = terrainY + coinHeight + jumpHeight;
+            character.position.x = characterPosition.x;
+            character.position.z = characterPosition.z;
+            
+            // Update camera position to follow character
+            const cameraDistance = 10;
+            camera.position.x = character.position.x - Math.sin(characterRotation) * cameraDistance;
+            camera.position.y = character.position.y + 3;
+            camera.position.z = character.position.z - Math.cos(characterRotation) * cameraDistance;
+            camera.lookAt(character.position);
+            
+            // Update level indicator
+            updateLevelIndicator();
+            
+            // Check for collisions with trees only
+            for (let i = 0; i < trees.length; i++) {
+                const tree = trees[i];
+                const distance = Math.sqrt(
+                    Math.pow(character.position.x - tree.position.x, 2) +
+                    Math.pow(character.position.z - tree.position.z, 2)
+                );
+                
+                // Collision with tree
+                if (distance < 1 && !jumping) {
+                    gameOver();
+                    return;
+                }
+            }
+            
+            // Check for coin collection and activation
+            updateCoins();
+        }
+        
+        function updateCoins() {
+            const deltaTime = clock.getDelta();
+            
+            for (let i = 0; i < coins.length; i++) {
+                const coin = coins[i];
+                if (coin.collected) continue;
+                
+                const distance = Math.sqrt(
+                    Math.pow(character.position.x - coin.mesh.position.x, 2) +
+                    Math.pow(character.position.z - coin.mesh.position.z, 2)
+                );
+                
+                // Activate coin timer when character is close
+                if (!coin.active && distance < coinActivationDistance) {
+                    coin.active = true;
+                    coin.timerStarted = true;
+                    coinTimerMeshes[i].visible = true;
+                }
+                
+                // Update timer for active coins
+                if (coin.active && !coin.collected) {
+                    if (coin.timeRemaining > 0) {
+                        coin.timeRemaining -= deltaTime;
+                        
+                        // Update timer visual
+                        const timerRatio = Math.max(0, coin.timeRemaining / coinTimeLimit);
+                        coinTimerMeshes[i].scale.set(timerRatio, timerRatio, 1);
+                        
+                        // Change color based on time remaining
+                        if (timerRatio > 0.6) {
+                            coinTimerMeshes[i].material.color.set(0x00ff00); // Green
+                        } else if (timerRatio > 0.3) {
+                            coinTimerMeshes[i].material.color.set(0xffff00); // Yellow
+                        } else {
+                            coinTimerMeshes[i].material.color.set(0xff0000); // Red
+                        }
+                        
+                        // Check for collection
+                        if (distance < 1.5) {
+                            collectCoin(i);
+                        }
+                    } else {
+                        // Timer expired
+                        scene.remove(coin.mesh);
+                        scene.remove(coinTimerMeshes[i]);
+                        coin.collected = true;
+                    }
+                }
+            }
+        }
+        
+        function collectCoin(index) {
+            const coin = coins[index];
+            coin.collected = true;
+            coin.mesh.visible = false;
+            scene.remove(coinTimerMeshes[index]);
+            
+            // Add points based on time remaining (faster collection = more points)
+            const timeBonus = Math.ceil(coin.timeRemaining);
+            const pointsEarned = coin.value + timeBonus;
+            
+            // Add bonus points for special coins
+            const coinType = coin.type;
+            let typeBonus = 0;
+            let coinName = "";
+            
+            if (coinType === COIN_TYPES.BRONZE) {
+                typeBonus = 0;
+                coinName = "Bronze";
+            } else if (coinType === COIN_TYPES.SILVER) {
+                typeBonus = 5;
+                coinName = "Silver";
+            } else if (coinType === COIN_TYPES.GOLD) {
+                typeBonus = 10;
+                coinName = "Gold";
+            } else if (coinType === COIN_TYPES.EMERALD) {
+                typeBonus = 20;
+                coinName = "Emerald";
+            } else if (coinType === COIN_TYPES.DIAMOND) {
+                typeBonus = 100;
+                coinName = "Diamond";
+            }
+            
+            score += pointsEarned + typeBonus;
+            
+            // Update coin collection count
+            coinCollection[coinType].collected++;
+            
+            // Show floating text with coin name and value
+            showFloatingText(`${coinName} +${pointsEarned + typeBonus}`, coin.mesh.position);
+            
+            // Update score display
+            updateLevelIndicator();
+            
+            // Check for win condition
+            checkWinCondition();
+        }
+        
+        function checkWinCondition() {
+            // Check if all coin requirements are met
+            const allRequirementsMet = Object.values(coinCollection).every(
+                coinType => coinType.collected >= coinType.required
+            );
+            
+            if (allRequirementsMet) {
+                // Player has won!
+                showWinScreen();
+            }
+        }
+        
+        function showWinScreen() {
+            isGameOver = true;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').innerHTML = `
+                <h2>You Win!</h2>
+                <p>Congratulations! You've collected all required coins!</p>
+                <p>Your final score: <span id="finalScore">${score}</span></p>
+                <button id="restartButton">Play Again</button>
+                <p>Share your victory:</p>
+                <button id="shareScoreButton">Share Victory</button>
+            `;
+            document.getElementById('gameOver').style.display = 'block';
+            
+            // Re-add event listeners for the new buttons
+            document.getElementById('restartButton').addEventListener('click', restartGame);
+            document.getElementById('shareScoreButton').addEventListener('click', () => shareScore(score, true));
+        }
+        
+        function showFloatingText(text, position) {
+            // Create a canvas texture for the text
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 200; // Increased width to accommodate longer text
+            canvas.height = 50;
+            context.font = 'Bold 24px Arial';
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            context.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            // Add a shadow effect for better visibility
+            context.shadowColor = 'black';
+            context.shadowBlur = 4;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            
+            // Create a texture from the canvas
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            
+            // Create a sprite with the texture
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(position.x, position.y + 2, position.z);
+            sprite.scale.set(8, 4, 1); // Increased scale for better visibility
+            scene.add(sprite);
+            
+            // Animate the text floating up and fading
+            let opacity = 1;
+            const animate = function() {
+                sprite.position.y += 0.05;
+                opacity -= 0.015; // Slower fade for better readability
+                sprite.material.opacity = opacity;
+                
+                if (opacity > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    scene.remove(sprite);
+                }
+            };
+            
+            animate();
+        }
+        
+        function levelUp() {
+            gameLevel++;
+            speed = Math.min(0.8, 0.2 + (gameLevel * 0.05)); // Increase base speed with level
+            
+            // Show level up message
+            showFloatingText("LEVEL UP!", character.position);
+            
+            // Regenerate environment with more challenges
+            regenerateEnvironment();
+        }
+        
+        function updateEnvironment() {
+            // Move animals
+            for (let i = 0; i < animals.length; i++) {
+                const animal = animals[i];
+                
+                // Change direction occasionally
+                if (Math.random() < 0.01) {
+                    animal.direction += (Math.random() - 0.5) * Math.PI / 2;
+                }
+                
+                // Move animal
+                animal.body.position.x += Math.cos(animal.direction) * animal.speed;
+                animal.body.position.z += Math.sin(animal.direction) * animal.speed;
+                
+                // Rotate to face direction
+                animal.body.rotation.y = animal.direction;
+                
+                // Keep animals within bounds
+                if (animal.body.position.x > terrainSize / 2) animal.body.position.x = terrainSize / 2;
+                if (animal.body.position.x < -terrainSize / 2) animal.body.position.x = -terrainSize / 2;
+                if (animal.body.position.z > terrainSize / 2) animal.body.position.z = terrainSize / 2;
+                if (animal.body.position.z < -terrainSize / 2) animal.body.position.z = -terrainSize / 2;
+                
+                // Update y position based on terrain
+                const x = animal.body.position.x;
+                const z = animal.body.position.z;
+                animal.body.position.y = getTerrainHeight(x, z) + 0.5;
+            }
+            
+            // Rotate coins for visual effect
+            for (let i = 0; i < coins.length; i++) {
+                if (!coins[i].collected) {
+                    // Regular coins rotate on Z axis
+                    if (coins[i].type !== COIN_TYPES.DIAMOND) {
+                        coins[i].mesh.rotation.z += 0.02;
+                    } else {
+                        // Diamond rotates on all axes for sparkle effect
+                        coins[i].mesh.rotation.x += 0.01;
+                        coins[i].mesh.rotation.y += 0.02;
+                        coins[i].mesh.rotation.z += 0.01;
+                    }
+                }
+            }
+            
+            // Check if we need to regenerate environment
+            const distanceFromCenter = Math.sqrt(
+                Math.pow(characterPosition.x, 2) + 
+                Math.pow(characterPosition.z, 2)
+            );
+            
+            // Decrease regeneration cooldown
+            if (regenerationCooldown > 0) {
+                regenerationCooldown--;
+            }
+            
+            // Only regenerate if we've moved far enough from the last regeneration point
+            // and we're not on cooldown
+            const distanceFromLastRegen = Math.sqrt(
+                Math.pow(characterPosition.x - lastRegeneratePosition.x, 2) + 
+                Math.pow(characterPosition.z - lastRegeneratePosition.z, 2)
+            );
+            
+            if (distanceFromCenter > terrainSize / 4 && 
+                distanceFromLastRegen > 100 && 
+                regenerationCooldown === 0) {
+                regenerateEnvironment();
+                lastRegeneratePosition.x = characterPosition.x;
+                lastRegeneratePosition.z = characterPosition.z;
+                regenerationCooldown = 60; // Set cooldown to prevent frequent regenerations
+            }
+        }
+        
+        function regenerateEnvironment() {
+            // Remove distant objects
+            removeDistantObjects();
+            
+            // Add new objects in a more distributed way
+            const characterSector = {
+                x: Math.floor((characterPosition.x + terrainSize/2) / (terrainSize/10)),
+                z: Math.floor((characterPosition.z + terrainSize/2) / (terrainSize/10))
+            };
+            
+            // Count current coins of each type
+            const currentCoinCounts = {};
+            for (let type = COIN_TYPES.BRONZE; type <= COIN_TYPES.DIAMOND; type++) {
+                currentCoinCounts[type] = 0;
+            }
+            
+            coins.forEach(coin => {
+                if (!coin.collected) {
+                    currentCoinCounts[coin.type]++;
+                }
+            });
+            
+            // Add coins in sectors around the character
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
+                    // Skip sectors that are too close to character
+                    const sectorX = (i - 5) + characterSector.x;
+                    const sectorZ = (j - 5) + characterSector.z;
+                    
+                    // Skip if this sector is too close to character
+                    if (Math.abs(sectorX - characterSector.x) < 2 && 
+                        Math.abs(sectorZ - characterSector.z) < 2) {
+                        continue;
+                    }
+                    
+                    // Calculate position
+                    const baseX = (sectorX * (terrainSize/10)) - (terrainSize/2) + (terrainSize/20);
+                    const baseZ = (sectorZ * (terrainSize/10)) - (terrainSize/2) + (terrainSize/20);
+                    
+                    // Add some randomness
+                    const x = baseX + (Math.random() - 0.5) * (terrainSize/10);
+                    const z = baseZ + (Math.random() - 0.5) * (terrainSize/10);
+                    
+                    // Only create if within terrain bounds
+                    if (x >= -terrainSize/2 && x <= terrainSize/2 && 
+                        z >= -terrainSize/2 && z <= terrainSize/2) {
+                        
+                        // Add coins (30% chance per sector - reduced from 50%)
+                        if (Math.random() < 0.3) {
+                            // Add 1-2 coins per sector (reduced from 1-3)
+                            const coinCount = 1 + Math.floor(Math.random() * 2);
+                            for (let c = 0; c < coinCount; c++) {
+                                const coinX = x + (Math.random() - 0.5) * 20;
+                                const coinZ = z + (Math.random() - 0.5) * 20;
+                                
+                                // Choose a random coin type (excluding diamond)
+                                const coinType = Math.floor(Math.random() * 4); // 0-3 for regular coins
+                                
+                                // Only create if we don't have too many of this type already
+                                const maxCoinsPerType = 30; // Limit coins per type
+                                if (currentCoinCounts[coinType] < maxCoinsPerType) {
+                                    createCoin(coinX, coinZ, coinType);
+                                    currentCoinCounts[coinType]++;
+                                }
+                            }
+                        }
+                        
+                        // No longer adding trees or animals during regeneration
+                    }
+                }
+            }
+            
+            // If diamond coin was collected and not replaced, add a new one
+            if (coinCollection[COIN_TYPES.DIAMOND].collected === 0 && currentCoinCounts[COIN_TYPES.DIAMOND] === 0) {
+                // Place diamond coin far from player but within terrain
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 100 + Math.random() * 100; // Between 100-200 units away
+                const x = characterPosition.x + Math.cos(angle) * distance;
+                const z = characterPosition.z + Math.sin(angle) * distance;
+                
+                // Ensure it's within terrain bounds
+                const boundedX = Math.max(-terrainSize/2 + 50, Math.min(terrainSize/2 - 50, x));
+                const boundedZ = Math.max(-terrainSize/2 + 50, Math.min(terrainSize/2 - 50, z));
+                
+                createCoin(boundedX, boundedZ, COIN_TYPES.DIAMOND);
+                diamondCoinPlaced = true;
+            }
+        }
+        
+        function removeDistantObjects() {
+            // Remove distant trees
+            for (let i = trees.length - 1; i >= 0; i--) {
+                const tree = trees[i];
+                const distance = Math.sqrt(
+                    Math.pow(tree.position.x - characterPosition.x, 2) +
+                    Math.pow(tree.position.z - characterPosition.z, 2)
+                );
+                
+                if (distance > visibleDistance) {
+                    scene.remove(tree.trunk);
+                    scene.remove(tree.leaves);
+                    trees.splice(i, 1);
+                }
+            }
+            
+            // Remove distant animals
+            for (let i = animals.length - 1; i >= 0; i--) {
+                const animal = animals[i];
+                const distance = Math.sqrt(
+                    Math.pow(animal.body.position.x - characterPosition.x, 2) +
+                    Math.pow(animal.body.position.z - characterPosition.z, 2)
+                );
+                
+                if (distance > visibleDistance) {
+                    scene.remove(animal.body);
+                    animals.splice(i, 1);
+                }
+            }
+            
+            // Remove distant or collected coins
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                const distance = Math.sqrt(
+                    Math.pow(coin.mesh.position.x - characterPosition.x, 2) +
+                    Math.pow(coin.mesh.position.z - characterPosition.z, 2)
+                );
+                
+                if (distance > visibleDistance || coin.collected) {
+                    scene.remove(coin.mesh);
+                    coins.splice(i, 1);
+                }
+            }
+        }
+        
+        function gameOver() {
+            isGameOver = true;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        function restartGame() {
+            // Reset game variables
+            score = 0;
+            speed = 0.2;
+            isGameOver = false;
+            characterPosition = { x: 0, y: 1.5, z: 0 }; // Reset with new height
+            characterRotation = 0; // Reset rotation
+            jumping = false;
+            jumpHeight = 0;
+            gameLevel = 1;
+            diamondCoinPlaced = false;
+            lastRegeneratePosition = { x: 0, z: 0 };
+            regenerationCooldown = 0;
+            
+            // Reset coin collection
+            for (let type in coinCollection) {
+                coinCollection[type].collected = 0;
+            }
+            
+            // Reset UI
+            updateLevelIndicator();
+            document.getElementById('gameOver').style.display = 'none';
+            
+            // Clear scene
+            while (scene.children.length > 0) {
+                scene.remove(scene.children[0]);
+            }
+            
+            // Clear arrays
+            terrain = [];
+            trees = [];
+            animals = [];
+            coins = [];
+            coinTimers = [];
+            coinTimerMeshes = [];
+            
+            // Reinitialize game
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 100, 50);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            createTerrain();
+            createCharacter();
+            createLevelIndicator();
+            generateEnvironment();
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (!isGameOver) {
+                updateCharacter();
+                updateEnvironment();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html> 
