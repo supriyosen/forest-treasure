@@ -73,6 +73,7 @@
         <p>W / ↑ : Increase speed</p>
         <p>S / ↓ : Decrease speed</p>
         <p>Space : Jump</p>
+        <p>M : Toggle Music</p>
         <p>Collect coins before their timer runs out!</p>
         <p>Faster collection = more points!</p>
         <p>Avoid trees!</p>
@@ -84,6 +85,13 @@
         <h2>Game Over!</h2>
         <p>Your final score: <span id="finalScore">0</span></p>
         <button id="restartButton">Play Again</button>
+    </div>
+
+    <!-- Start screen with play button -->
+    <div id="startScreen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; text-align: center; z-index: 300;">
+        <h1>Forest Runner</h1>
+        <p>Collect coins and avoid trees!</p>
+        <button id="startButton" style="background: #4CAF50; border: none; color: white; padding: 15px 30px; text-align: center; text-decoration: none; display: inline-block; font-size: 18px; margin: 10px 2px; cursor: pointer; border-radius: 5px;">Start Game</button>
     </div>
 
     <!-- Audio elements -->
@@ -98,6 +106,8 @@
         const summitCall = document.getElementById('summitCall');
         const mountainCall = document.getElementById('mountainCall');
         const musicToggle = document.getElementById('musicToggle');
+        const startScreen = document.getElementById('startScreen');
+        const startButton = document.getElementById('startButton');
 
         // Set up audio
         summitCall.volume = 0.5;
@@ -112,9 +122,12 @@
                 mountainCall.pause();
                 musicToggle.textContent = '🔈 Music: OFF';
             } else {
-                summitCall.play();
-                mountainCall.play();
-                musicToggle.textContent = '🔊 Music: ON';
+                Promise.all([
+                    summitCall.play().catch(error => console.log('Audio play failed:', error)),
+                    mountainCall.play().catch(error => console.log('Audio play failed:', error))
+                ]).then(() => {
+                    musicToggle.textContent = '🔊 Music: ON';
+                });
             }
             isMusicPlaying = !isMusicPlaying;
         }
@@ -127,6 +140,13 @@
             if (event.key.toLowerCase() === 'm') {
                 toggleMusic();
             }
+        });
+
+        // Start button click handler
+        startButton.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            init();
+            toggleMusic(); // Start music when game starts
         });
 
         // Game variables
@@ -792,12 +812,75 @@
             document.getElementById('gameOver').style.display = 'block';
         }
 
-        // Start music when game starts
-        document.getElementById('restartButton').addEventListener('click', () => {
-            restartGame();
+        function restartGame() {
+            // Reset game variables
+            score = 0;
+            speed = 0.2;
+            isGameOver = false;
+            characterPosition = { x: 0, y: 1.5, z: 0 }; // Reset with new height
+            characterRotation = 0; // Reset rotation
+            jumping = false;
+            jumpHeight = 0;
+            gameLevel = 1;
+            diamondCoinPlaced = false;
+            lastRegeneratePosition = { x: 0, z: 0 };
+            regenerationCooldown = 0;
+            
+            // Reset coin collection
+            for (let type in coinCollection) {
+                coinCollection[type].collected = 0;
+            }
+            
+            // Reset UI
+            updateLevelIndicator();
+            document.getElementById('gameOver').style.display = 'none';
+            
+            // Clear scene
+            while (scene.children.length > 0) {
+                scene.remove(scene.children[0]);
+            }
+            
+            // Clear arrays
+            terrain = [];
+            trees = [];
+            animals = [];
+            coins = [];
+            coinTimers = [];
+            coinTimerMeshes = [];
+            
+            // Reinitialize game
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 100, 50);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            createTerrain();
+            createCharacter();
+            createLevelIndicator();
+            generateEnvironment();
+
+            // Ensure music is playing
             if (!isMusicPlaying) {
                 toggleMusic();
             }
+        }
+
+        // Remove the old restart button event listener and add the new one
+        document.getElementById('restartButton').addEventListener('click', restartGame);
+
+        // Initialize the game only after clicking start
+        document.getElementById('info').style.display = 'none';
+        document.getElementById('score').style.display = 'none';
+        document.getElementById('musicToggle').style.display = 'none';
+
+        // Show UI elements when game starts
+        startButton.addEventListener('click', () => {
+            document.getElementById('info').style.display = 'block';
+            document.getElementById('score').style.display = 'block';
+            document.getElementById('musicToggle').style.display = 'block';
         });
 
         // ... existing code ...
