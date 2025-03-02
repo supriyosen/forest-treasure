@@ -2,6 +2,12 @@
 
 A 3D web-based game where you navigate through a magical forest collecting different types of coins while avoiding trees.
 
+## Play the Game
+
+🎮 [Play Forest Runner](https://supriyosen.github.io/forest-treasure/)
+
+Full link: https://supriyosen.github.io/forest-treasure/
+
 ## Game Features
 
 - **Multiple Coin Types**: Collect Bronze, Silver, Gold, Emerald, and special Diamond coins
