@@ -108,6 +108,8 @@
         const musicToggle = document.getElementById('musicToggle');
         const startScreen = document.getElementById('startScreen');
         const startButton = document.getElementById('startButton');
+        const info = document.getElementById('info');
+        const scoreDisplay = document.getElementById('score');
 
         // Set up audio
         summitCall.volume = 0.5;
@@ -115,21 +117,34 @@
         summitCall.loop = true;
         mountainCall.loop = true;
 
+        // Play background music function
+        function playBackgroundMusic() {
+            if (!isMusicPlaying) {
+                // Try to play both audio tracks
+                Promise.all([
+                    summitCall.play().catch(error => console.log('Audio play failed:', error)),
+                    mountainCall.play().catch(error => console.log('Audio play failed:', error))
+                ]).then(() => {
+                    isMusicPlaying = true;
+                    musicToggle.textContent = '🔊 Music: ON';
+                }).catch(error => {
+                    console.log('Audio play failed:', error);
+                    // Try again after a short delay (browsers sometimes need user interaction first)
+                    setTimeout(playBackgroundMusic, 1000);
+                });
+            }
+        }
+
         // Toggle music function
         function toggleMusic() {
             if (isMusicPlaying) {
                 summitCall.pause();
                 mountainCall.pause();
                 musicToggle.textContent = '🔈 Music: OFF';
+                isMusicPlaying = false;
             } else {
-                Promise.all([
-                    summitCall.play().catch(error => console.log('Audio play failed:', error)),
-                    mountainCall.play().catch(error => console.log('Audio play failed:', error))
-                ]).then(() => {
-                    musicToggle.textContent = '🔊 Music: ON';
-                });
+                playBackgroundMusic();
             }
-            isMusicPlaying = !isMusicPlaying;
         }
 
         // Add music toggle event listener
@@ -142,11 +157,25 @@
             }
         });
 
+        // Initially hide game UI
+        info.style.display = 'none';
+        scoreDisplay.style.display = 'none';
+        musicToggle.style.display = 'none';
+
         // Start button click handler
         startButton.addEventListener('click', () => {
             startScreen.style.display = 'none';
+            
+            // Show game UI
+            info.style.display = 'block';
+            scoreDisplay.style.display = 'block';
+            musicToggle.style.display = 'block';
+            
+            // Initialize and start the game
             init();
-            toggleMusic(); // Start music when game starts
+            
+            // Start playing music
+            playBackgroundMusic();
         });
 
         // Game variables
@@ -864,26 +893,107 @@
 
             // Ensure music is playing
             if (!isMusicPlaying) {
-                toggleMusic();
+                playBackgroundMusic();
             }
         }
 
         // Remove the old restart button event listener and add the new one
         document.getElementById('restartButton').addEventListener('click', restartGame);
 
-        // Initialize the game only after clicking start
-        document.getElementById('info').style.display = 'none';
-        document.getElementById('score').style.display = 'none';
-        document.getElementById('musicToggle').style.display = 'none';
+        function showFloatingText(text, position) {
+            // Create a div for the floating text
+            const textElement = document.createElement('div');
+            textElement.style.position = 'absolute';
+            textElement.style.color = 'white';
+            textElement.style.fontSize = '20px';
+            textElement.style.fontWeight = 'bold';
+            textElement.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+            textElement.style.pointerEvents = 'none';
+            textElement.innerHTML = text;
+            document.body.appendChild(textElement);
+            
+            // Convert 3D position to screen position
+            const vector = new THREE.Vector3(position.x, position.y + 2, position.z);
+            vector.project(camera);
+            
+            const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+            
+            textElement.style.left = x + 'px';
+            textElement.style.top = y + 'px';
+            
+            // Animate the text floating up and fading out
+            let opacity = 1;
+            let yPos = y;
+            
+            const animate = () => {
+                opacity -= 0.02;
+                yPos -= 1;
+                
+                textElement.style.opacity = opacity;
+                textElement.style.top = yPos + 'px';
+                
+                if (opacity > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    document.body.removeChild(textElement);
+                }
+            };
+            
+            animate();
+        }
 
-        // Show UI elements when game starts
-        startButton.addEventListener('click', () => {
-            document.getElementById('info').style.display = 'block';
-            document.getElementById('score').style.display = 'block';
-            document.getElementById('musicToggle').style.display = 'block';
-        });
+        function gameOver() {
+            isGameOver = true;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
 
-        // ... existing code ...
+        function animate() {
+            if (isGameOver) return;
+            
+            requestAnimationFrame(animate);
+            
+            // Update character position and camera
+            updateCharacter();
+            
+            // Update animals
+            for (let i = 0; i < animals.length; i++) {
+                const animal = animals[i];
+                
+                // Move animal in its direction
+                animal.body.position.x += Math.sin(animal.direction) * animal.speed;
+                animal.body.position.z += Math.cos(animal.direction) * animal.speed;
+                
+                // Rotate animal to face direction
+                animal.body.rotation.y = animal.direction;
+                
+                // Randomly change direction occasionally
+                if (Math.random() < 0.01) {
+                    animal.direction += (Math.random() - 0.5) * 0.5;
+                }
+                
+                // Keep animal within terrain bounds
+                const boundaryLimit = terrainSize / 2 - 5;
+                if (animal.body.position.x > boundaryLimit || animal.body.position.x < -boundaryLimit ||
+                    animal.body.position.z > boundaryLimit || animal.body.position.z < -boundaryLimit) {
+                    animal.direction += Math.PI; // Turn around
+                }
+                
+                // Update animal's y position based on terrain
+                const terrainY = getTerrainHeight(animal.body.position.x, animal.body.position.z);
+                animal.body.position.y = terrainY + 0.5; // Half height of animal
+            }
+            
+            // Rotate coins for visual effect
+            for (let i = 0; i < coins.length; i++) {
+                if (!coins[i].collected) {
+                    coins[i].mesh.rotation.y += 0.01;
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
     </script>
 </body>
 </html>
